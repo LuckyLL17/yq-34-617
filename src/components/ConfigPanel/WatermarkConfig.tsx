@@ -1,5 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useConfigStore } from '@/store/useConfigStore';
 import type { WatermarkPosition } from '@/types';
 
 const watermarkPositions: { id: WatermarkPosition; label: string }[] = [
@@ -16,7 +16,7 @@ export default function WatermarkConfig() {
     setWatermarkFontSize,
     setWatermarkOpacity,
     setWatermarkColor,
-  } = useCopybookStore(
+  } = useConfigStore(
     useShallow((s) => ({
       watermark: s.watermark,
       setWatermarkEnabled: s.setWatermarkEnabled,

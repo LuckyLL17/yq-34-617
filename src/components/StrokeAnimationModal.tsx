@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { X, Play, Pause, RotateCcw, SkipBack, SkipForward, FastForward, Gauge } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useTextStore } from '@/store/useTextStore';
 import HanziWriter from 'hanzi-writer';
 
 const SPEED_OPTIONS = [
@@ -12,7 +12,7 @@ const SPEED_OPTIONS = [
 ];
 
 export default function StrokeAnimationModal() {
-  const { strokeAnimation, closeStrokeAnimation } = useCopybookStore(
+  const { strokeAnimation, closeStrokeAnimation } = useTextStore(
     useShallow((s) => ({
       strokeAnimation: s.strokeAnimation,
       closeStrokeAnimation: s.closeStrokeAnimation,

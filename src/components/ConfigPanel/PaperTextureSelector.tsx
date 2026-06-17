@@ -1,5 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useConfigStore } from '@/store/useConfigStore';
 import type { PaperTexture } from '@/types';
 
 interface PaperTextureOption {
@@ -90,7 +90,7 @@ const paperTextures: PaperTextureOption[] = [
 ];
 
 export default function PaperTextureSelector() {
-  const { paperTexture, setPaperTexture } = useCopybookStore(
+  const { paperTexture, setPaperTexture } = useConfigStore(
     useShallow((s) => ({
       paperTexture: s.paperTexture,
       setPaperTexture: s.setPaperTexture,

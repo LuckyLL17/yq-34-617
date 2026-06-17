@@ -1,15 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { ChevronDown, Sparkles } from 'lucide-react';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useConfigStore, useTextStore } from '@/store';
 import { getPresetsByType } from '@/utils/presetTexts';
 
 export default function TextInput() {
-  const { textType, text, setText } = useCopybookStore(
+  const { textType, text, setText } = useConfigStore(
     useShallow((s) => ({
       textType: s.textType,
       text: s.text,
       setText: s.setText,
+    }))
+  );
+  const { setOriginalText } = useTextStore(
+    useShallow((s) => ({
+      setOriginalText: s.setOriginalText,
     }))
   );
   const [showPresets, setShowPresets] = useState(false);
@@ -60,6 +65,7 @@ export default function TextInput() {
                     key={p.label}
                     onClick={() => {
                       setText(p.value);
+                      setOriginalText(p.value);
                       setShowPresets(false);
                     }}
                     className="block w-full text-left px-4 py-2.5 text-sm text-stone-700 hover:bg-[#8B2E20]/5 hover:text-[#8B2E20] transition-colors border-b border-stone-50 last:border-b-0"
@@ -78,7 +84,10 @@ export default function TextInput() {
       </div>
       <textarea
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => {
+          setText(e.target.value);
+          setOriginalText(e.target.value);
+        }}
         placeholder="请输入要练习的文字...&#10;&#10;使用 | 手动换行，使用 --- 手动换页"
         rows={5}
         className="w-full px-3 py-2.5 text-sm text-stone-700 bg-white border-2 border-stone-200 rounded-lg resize-none focus:outline-none focus:border-[#8B2E20]/50 focus:ring-2 focus:ring-[#8B2E20]/10 transition-all"
