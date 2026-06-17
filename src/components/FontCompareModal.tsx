@@ -1,8 +1,7 @@
 import { useState, useMemo } from 'react';
 import { X, Check, Type, ZoomIn, ZoomOut, Star } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import { useCopybookStore } from '@/store/useCopybookStore';
-import { useFavoriteFontStore } from '@/store/useFavoriteFontStore';
+import { useConfigStore, useUserDataStore } from '@/store';
 import { getSortedFontsByType } from '@/utils/fonts';
 import type { FontOption } from '@/types';
 
@@ -12,7 +11,7 @@ interface FontCompareModalProps {
 }
 
 export default function FontCompareModal({ open, onClose }: FontCompareModalProps) {
-  const { textType, fontId, setFontId } = useCopybookStore(
+  const { textType, fontId, setFontId } = useConfigStore(
     useShallow((s) => ({
       textType: s.textType,
       fontId: s.fontId,
@@ -20,7 +19,7 @@ export default function FontCompareModal({ open, onClose }: FontCompareModalProp
     }))
   );
 
-  const { favoriteFontIds, toggleFavoriteFont } = useFavoriteFontStore(
+  const { favoriteFontIds, toggleFavoriteFont } = useUserDataStore(
     useShallow((s) => ({
       favoriteFontIds: s.favoriteFontIds,
       toggleFavoriteFont: s.toggleFavoriteFont,

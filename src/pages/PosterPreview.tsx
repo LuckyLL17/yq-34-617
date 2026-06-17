@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, Flame, Sparkles, ArrowLeft } from 'lucide-react';
-import { useCheckinStore, formatDate, parseDate } from '@/store/useCheckinStore';
+import { useUserDataStore, formatDate, parseDate } from '@/store';
 
 const SLOGANS = [
   '一笔一画，皆是修行',
@@ -23,11 +23,11 @@ function formatDisplayDate(date: string) {
 export default function PosterPreview() {
   const navigate = useNavigate();
   const { date } = useParams<{ date: string }>();
-  const records = useCheckinStore((s) => s.records);
-  const stats = useMemo(() => useCheckinStore.getState().getStats(), [records]);
+  const checkinRecords = useUserDataStore((s) => s.checkinRecords);
+  const stats = useMemo(() => useUserDataStore.getState().getCheckinStats(), [checkinRecords]);
 
   const targetDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : formatDate(new Date());
-  const record = records[targetDate];
+  const record = checkinRecords[targetDate];
 
   const slogan = useMemo(() => {
     const idx = new Date(targetDate).getDate() % SLOGANS.length;

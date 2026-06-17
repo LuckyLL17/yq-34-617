@@ -2,7 +2,7 @@ import { useRef, useState, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { Settings, Eye, PenTool, ChevronDown, Calendar as CalendarIcon, Sparkles, Gauge, Type, ScrollText, BookMarked, Droplet, Clock, Hash, CheckCircle, Percent, Wand2 } from 'lucide-react';
 import WatermarkConfig from '@/components/ConfigPanel/WatermarkConfig';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useConfigStore, usePracticeStore } from '@/store';
 import CopybookPreview from '@/components/Preview/CopybookPreview';
 import DrawingToolbar from '@/components/Preview/DrawingToolbar';
 import TextTypeSelector from '@/components/ConfigPanel/TextTypeSelector';
@@ -64,9 +64,14 @@ export default function Home() {
     record?: CheckinRecord;
   }>({});
 
-  const { text, difficultyLevel, getTotalValidCells, getCompletionPercentage, getCompletedCellsCount } = useCopybookStore(
+  const { text } = useConfigStore(
     useShallow((s) => ({
       text: s.text,
+    }))
+  );
+
+  const { difficultyLevel, getTotalValidCells, getCompletionPercentage, getCompletedCellsCount } = usePracticeStore(
+    useShallow((s) => ({
       difficultyLevel: s.difficultyLevel,
       getTotalValidCells: s.getTotalValidCells,
       getCompletionPercentage: s.getCompletionPercentage,

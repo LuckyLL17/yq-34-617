@@ -1,5 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useConfigStore } from '@/store';
 import type { ColorTheme } from '@/types';
 
 const colorThemes: ColorTheme[] = [
@@ -116,7 +116,7 @@ export default function ColorConfig() {
     setFontColor,
     setGridColor,
     applyColorTheme,
-  } = useCopybookStore(
+  } = useConfigStore(
     useShallow((s) => ({
       fontColor: s.fontColor,
       gridColor: s.gridColor,

@@ -14,8 +14,7 @@ import {
   Image,
   FileImage,
 } from 'lucide-react';
-import { useCopybookStore } from '@/store/useCopybookStore';
-import { useCheckinStore, formatDate } from '@/store/useCheckinStore';
+import { useConfigStore, useDrawingStore, useUserDataStore, formatDate } from '@/store';
 import { exportCopybook, type ExportOptions, type PaperSize, type PageOrientation, type ExportFormat, type ImageQuality } from '@/utils/pdfExport';
 import html2canvas from 'html2canvas';
 
@@ -38,16 +37,20 @@ export default function ExportButton({ previewRef, onCheckinSuccess }: ExportBut
   const [exportFormat, setExportFormat] = useState<ExportFormat>('pdf');
   const [imageQuality, setImageQuality] = useState<ImageQuality>('high');
   const [pageRange, setPageRange] = useState<'all' | 'current'>('all');
-  const { resetConfig, pagePaths, textType, fontId, text } = useCopybookStore(
+  const { resetConfig, textType, fontId, text } = useConfigStore(
     useShallow((s) => ({
       resetConfig: s.resetConfig,
-      pagePaths: s.pagePaths,
       textType: s.textType,
       fontId: s.fontId,
       text: s.text,
     }))
   );
-  const { checkin } = useCheckinStore();
+  const { pagePaths } = useDrawingStore(
+    useShallow((s) => ({
+      pagePaths: s.pagePaths,
+    }))
+  );
+  const { checkin } = useUserDataStore();
 
   const hasDrawing = useMemo(() => {
     return Object.values(pagePaths).some((p) => p && p.length > 0);

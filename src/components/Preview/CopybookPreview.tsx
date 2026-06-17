@@ -1,6 +1,6 @@
 import { forwardRef, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useConfigStore, useDrawingStore } from '@/store';
 import { getFontById } from '@/utils/fonts';
 import type { CopybookConfig, HeaderPosition, HeaderFieldConfig, PaperTexture, WatermarkConfig, TraceDisplayMode, WritingDirection } from '@/types';
 import GridCell from './GridCell';
@@ -23,43 +23,7 @@ const getPaperTextureStyle = (texture: PaperTexture): React.CSSProperties => {
   return { backgroundColor: '#ffffff' };
 };
 
-const selector = (s: {
-  textType: CopybookConfig['textType'];
-  text: CopybookConfig['text'];
-  fontId: CopybookConfig['fontId'];
-  gridType: CopybookConfig['gridType'];
-  cellSize: CopybookConfig['cellSize'];
-  colsPerRow: CopybookConfig['colsPerRow'];
-  rows: CopybookConfig['rows'];
-  writingDirection: WritingDirection;
-  fontColor: CopybookConfig['fontColor'];
-  gridColor: CopybookConfig['gridColor'];
-  showDashed: CopybookConfig['showDashed'];
-  showTrace: CopybookConfig['showTrace'];
-  traceOpacity: CopybookConfig['traceOpacity'];
-  traceDisplayMode: TraceDisplayMode;
-  title: CopybookConfig['title'];
-  subtitle: CopybookConfig['subtitle'];
-  nameField: CopybookConfig['nameField'];
-  dateField: CopybookConfig['dateField'];
-  classField: CopybookConfig['classField'];
-  headerPosition: CopybookConfig['headerPosition'];
-  showLineNumbers: CopybookConfig['showLineNumbers'];
-  paperTexture: CopybookConfig['paperTexture'];
-  watermark: CopybookConfig['watermark'];
-  completedCells: any;
-}): CopybookConfig & {
-  title: string;
-  subtitle: string;
-  nameField: HeaderFieldConfig;
-  dateField: HeaderFieldConfig;
-  classField: HeaderFieldConfig;
-  headerPosition: HeaderPosition;
-  showLineNumbers: boolean;
-  paperTexture: PaperTexture;
-  watermark: WatermarkConfig;
-  completedCells: any;
-} => ({
+const configSelector = (s: CopybookConfig) => ({
   textType: s.textType,
   text: s.text,
   fontId: s.fontId,
@@ -83,7 +47,6 @@ const selector = (s: {
   showLineNumbers: s.showLineNumbers,
   paperTexture: s.paperTexture,
   watermark: s.watermark,
-  completedCells: s.completedCells,
 });
 
 const LINE_NUMBER_WIDTH = 28;
@@ -94,7 +57,9 @@ function isVerticalDirection(direction: WritingDirection): boolean {
 
 const CopybookPreview = forwardRef<HTMLDivElement, CopybookPreviewProps>(
   ({ className, overrideConfig }, ref) => {
-    const storeConfig = useCopybookStore(useShallow(selector));
+    const configState = useConfigStore(useShallow(configSelector));
+    const completedCells = useDrawingStore((s) => s.completedCells);
+    const storeConfig = { ...configState, completedCells };
     const config = useMemo(() => {
       return { ...storeConfig, ...overrideConfig };
     }, [storeConfig, overrideConfig]);

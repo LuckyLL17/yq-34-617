@@ -1,5 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useConfigStore } from '@/store';
 import type { GridType, TraceDisplayMode, WritingDirection } from '@/types';
 import { ArrowRight, ArrowLeft, ArrowDown, ArrowUpRight } from 'lucide-react';
 
@@ -44,7 +44,7 @@ export default function GridConfig() {
     setShowTrace,
     setTraceOpacity,
     setTraceDisplayMode,
-  } = useCopybookStore(
+  } = useConfigStore(
     useShallow((s) => ({
       gridType: s.gridType,
       cellSize: s.cellSize,
