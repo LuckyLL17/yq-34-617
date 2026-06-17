@@ -1,5 +1,7 @@
 import type { GridType, WatermarkConfig } from '@/types';
-import { useCopybookStore, COMPLETION_THRESHOLD } from '@/store/useCopybookStore';
+import { useTextProcessingStore } from '@/store/useTextProcessingStore';
+import { useDrawingStore, COMPLETION_THRESHOLD } from '@/store/useDrawingStore';
+import { useCopybookConfigStore } from '@/store/useCopybookConfigStore';
 
 interface GridCellProps {
   char: string;
@@ -30,9 +32,9 @@ export default function GridCell({
   completion = 0,
   watermark,
 }: GridCellProps) {
-  const openStrokeAnimation = useCopybookStore((s) => s.openStrokeAnimation);
-  const textType = useCopybookStore((s) => s.textType);
-  const drawingEnabled = useCopybookStore((s) => s.drawingEnabled);
+  const openStrokeAnimation = useTextProcessingStore((s) => s.openStrokeAnimation);
+  const textType = useCopybookConfigStore((s) => s.textType);
+  const drawingEnabled = useDrawingStore((s) => s.drawingEnabled);
 
   const s = cellSize;
   const fontSize = Math.floor(s * 0.78);

@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { ChevronDown, Sparkles } from 'lucide-react';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useCopybookConfigStore } from '@/store/useCopybookConfigStore';
 import { getPresetsByType } from '@/utils/presetTexts';
 
 export default function TextInput() {
-  const { textType, text, setText } = useCopybookStore(
+  const { textType, text, setText } = useCopybookConfigStore(
     useShallow((s) => ({
       textType: s.textType,
       text: s.text,
