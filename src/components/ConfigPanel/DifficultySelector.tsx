@@ -1,5 +1,6 @@
 import { useShallow } from 'zustand/react/shallow';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useTextStore } from '@/store/useTextStore';
+import { useConfigStore } from '@/store/useConfigStore';
 import type { DifficultyLevel } from '@/types';
 import { Sparkles, Target, Flame, Grid3x3, Eye, Layers } from 'lucide-react';
 
@@ -61,14 +62,24 @@ const LEVEL_DETAILS: Record<DifficultyLevel, { cellSize: string; layout: string;
 };
 
 export default function DifficultySelector() {
-  const { difficultyLevel, setDifficultyLevel } = useCopybookStore(
+  const { difficultyLevel, setDifficultyLevel } = useTextStore(
     useShallow((s) => ({
       difficultyLevel: s.difficultyLevel,
       setDifficultyLevel: s.setDifficultyLevel,
     }))
   );
+  const { updateConfig } = useConfigStore(
+    useShallow((s) => ({
+      updateConfig: s.updateConfig,
+    }))
+  );
 
   const details = LEVEL_DETAILS[difficultyLevel];
+
+  const handleSetDifficulty = (level: DifficultyLevel) => {
+    const config = setDifficultyLevel(level);
+    updateConfig(config);
+  };
 
   return (
     <div className="space-y-3">
@@ -78,7 +89,7 @@ export default function DifficultySelector() {
           return (
             <button
               key={opt.level}
-              onClick={() => setDifficultyLevel(opt.level)}
+              onClick={() => handleSetDifficulty(opt.level)}
               className={`relative group p-3 rounded-xl border-2 transition-all duration-200 text-left ${
                 isActive
                   ? 'border-transparent shadow-lg'

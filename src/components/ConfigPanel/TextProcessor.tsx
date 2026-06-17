@@ -1,6 +1,7 @@
 import { useShallow } from 'zustand/react/shallow';
 import { Shuffle, ArrowDownUp, RotateCcw, ListOrdered, Filter } from 'lucide-react';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useTextStore } from '@/store/useTextStore';
+import { useConfigStore } from '@/store/useConfigStore';
 import type { SortMode } from '@/types';
 
 const sortOptions: { id: SortMode; label: string; icon: typeof Shuffle }[] = [
@@ -12,7 +13,6 @@ const sortOptions: { id: SortMode; label: string; icon: typeof Shuffle }[] = [
 
 export default function TextProcessor() {
   const {
-    textType,
     minStroke,
     maxStroke,
     sortMode,
@@ -24,9 +24,9 @@ export default function TextProcessor() {
     applyStrokeFilter,
     applyTextSort,
     resetTextProcessing,
-  } = useCopybookStore(
+    originalText,
+  } = useTextStore(
     useShallow((s) => ({
-      textType: s.textType,
       minStroke: s.minStroke,
       maxStroke: s.maxStroke,
       sortMode: s.sortMode,
@@ -38,10 +38,32 @@ export default function TextProcessor() {
       applyStrokeFilter: s.applyStrokeFilter,
       applyTextSort: s.applyTextSort,
       resetTextProcessing: s.resetTextProcessing,
+      originalText: s.originalText,
+    }))
+  );
+  const { textType, setText } = useConfigStore(
+    useShallow((s) => ({
+      textType: s.textType,
+      setText: s.setText,
     }))
   );
 
   const isChinese = textType === 'chinese';
+
+  const handleApplyStrokeFilter = () => {
+    const filtered = applyStrokeFilter();
+    setText(filtered);
+  };
+
+  const handleApplyTextSort = () => {
+    const sorted = applyTextSort();
+    setText(sorted);
+  };
+
+  const handleResetTextProcessing = () => {
+    resetTextProcessing();
+    setText(originalText);
+  };
 
   return (
     <div className="space-y-5">
@@ -53,7 +75,7 @@ export default function TextProcessor() {
               笔画数过滤
             </label>
             <button
-              onClick={applyStrokeFilter}
+              onClick={handleApplyStrokeFilter}
               className="px-3 py-1.5 text-xs font-medium text-white bg-[#8B2E20] rounded-md hover:bg-[#7a281c] active:scale-[0.98] transition-all"
             >
               应用过滤
@@ -97,7 +119,7 @@ export default function TextProcessor() {
             文字排序
           </label>
           <button
-            onClick={applyTextSort}
+            onClick={handleApplyTextSort}
             className="px-3 py-1.5 text-xs font-medium text-white bg-[#8B2E20] rounded-md hover:bg-[#7a281c] active:scale-[0.98] transition-all"
           >
             应用排序
@@ -150,7 +172,7 @@ export default function TextProcessor() {
       </div>
 
       <button
-        onClick={resetTextProcessing}
+        onClick={handleResetTextProcessing}
         className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-stone-500 bg-stone-100 rounded-lg hover:bg-stone-200 hover:text-stone-700 transition-colors"
       >
         <RotateCcw size={14} />

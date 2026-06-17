@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { CheckinStore, CheckinRecord } from '@/types';
+import { createPersistedStore, STORAGE_KEYS } from './utils/persist';
 
-const STORAGE_KEY = 'copybook-checkin-records';
-
+/**
+ * 格式化日期为 YYYY-MM-DD 格式
+ */
 function formatDate(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -11,11 +12,18 @@ function formatDate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+/**
+ * 解析日期字符串为 Date 对象
+ */
 function parseDate(dateStr: string): Date {
   const [y, m, d] = dateStr.split('-').map(Number);
   return new Date(y, m - 1, d);
 }
 
+/**
+ * 计算连续打卡天数
+ * 返回当前连续天数和历史最长连续天数
+ */
 function calcStreaks(records: Record<string, CheckinRecord>): { current: number; longest: number } {
   const dates = Object.keys(records).sort();
   if (dates.length === 0) return { current: 0, longest: 0 };
@@ -75,72 +83,74 @@ function calcStreaks(records: Record<string, CheckinRecord>): { current: number;
   return { current, longest: Math.max(longest, longestAll) };
 }
 
+/**
+ * 打卡记录 Store
+ * 负责打卡记录的增删改查和统计计算
+ * 职责：管理用户打卡历史和相关统计数据
+ */
 export const useCheckinStore = create<CheckinStore>()(
-  persist(
-    (set, get) => ({
-      records: {},
+  createPersistedStore<CheckinStore>(
+    STORAGE_KEYS.CHECKIN,
+    (state) => ({ records: state.records })
+  )((set, get) => ({
+    records: {},
 
-      checkin: (record) =>
-        set((state) => {
-          const existing = state.records[record.date];
-          const newRecord: CheckinRecord = {
-            ...record,
-            timestamp: Date.now(),
-            charCount: existing ? existing.charCount + record.charCount : record.charCount,
-            posterThumbnail: record.posterThumbnail || existing?.posterThumbnail,
-          };
-          return {
-            records: {
-              ...state.records,
-              [record.date]: newRecord,
-            },
-          };
-        }),
-
-      getRecordByDate: (date) => get().records[date],
-
-      getMonthRecords: (year, month) => {
-        const records = get().records;
-        const prefix = `${year}-${String(month + 1).padStart(2, '0')}-`;
-        const result: Record<string, CheckinRecord> = {};
-        for (const [date, record] of Object.entries(records)) {
-          if (date.startsWith(prefix)) {
-            result[date] = record;
-          }
-        }
-        return result;
-      },
-
-      getStats: () => {
-        const records = get().records;
-        const dates = Object.keys(records);
-        let totalChars = 0;
-        for (const rec of Object.values(records)) {
-          totalChars += rec.charCount;
-        }
-        const { current, longest } = calcStreaks(records);
-        return {
-          totalDays: dates.length,
-          totalChars,
-          currentStreak: current,
-          longestStreak: longest,
+    checkin: (record) =>
+      set((state) => {
+        const existing = state.records[record.date];
+        const newRecord: CheckinRecord = {
+          ...record,
+          timestamp: Date.now(),
+          charCount: existing ? existing.charCount + record.charCount : record.charCount,
+          posterThumbnail: record.posterThumbnail || existing?.posterThumbnail,
         };
-      },
+        return {
+          records: {
+            ...state.records,
+            [record.date]: newRecord,
+          },
+        };
+      }),
 
-      getMaxCharCount: () => {
-        const records = get().records;
-        let max = 0;
-        for (const rec of Object.values(records)) {
-          if (rec.charCount > max) max = rec.charCount;
+    getRecordByDate: (date) => get().records[date],
+
+    getMonthRecords: (year, month) => {
+      const records = get().records;
+      const prefix = `${year}-${String(month + 1).padStart(2, '0')}-`;
+      const result: Record<string, CheckinRecord> = {};
+      for (const [date, record] of Object.entries(records)) {
+        if (date.startsWith(prefix)) {
+          result[date] = record;
         }
-        return max;
-      },
-    }),
-    {
-      name: STORAGE_KEY,
-      partialize: (state) => ({ records: state.records }),
-    }
-  )
+      }
+      return result;
+    },
+
+    getStats: () => {
+      const records = get().records;
+      const dates = Object.keys(records);
+      let totalChars = 0;
+      for (const rec of Object.values(records)) {
+        totalChars += rec.charCount;
+      }
+      const { current, longest } = calcStreaks(records);
+      return {
+        totalDays: dates.length,
+        totalChars,
+        currentStreak: current,
+        longestStreak: longest,
+      };
+    },
+
+    getMaxCharCount: () => {
+      const records = get().records;
+      let max = 0;
+      for (const rec of Object.values(records)) {
+        if (rec.charCount > max) max = rec.charCount;
+      }
+      return max;
+    },
+  }))
 );
 
 export { formatDate, parseDate };

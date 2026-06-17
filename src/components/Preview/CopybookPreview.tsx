@@ -1,8 +1,18 @@
-import { forwardRef, useMemo } from 'react';
+import { forwardRef, useMemo, useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useConfigStore } from '@/store/useConfigStore';
+import { useDrawingStore } from '@/store/useDrawingStore';
+import { useTextStore } from '@/store/useTextStore';
 import { getFontById } from '@/utils/fonts';
-import type { CopybookConfig, HeaderPosition, HeaderFieldConfig, PaperTexture, WatermarkConfig, TraceDisplayMode, WritingDirection } from '@/types';
+import type {
+  CopybookConfig,
+  HeaderPosition,
+  HeaderFieldConfig,
+  PaperTexture,
+  WatermarkConfig,
+  TraceDisplayMode,
+  WritingDirection,
+} from '@/types';
 import GridCell from './GridCell';
 import PageDrawingCanvas from './PageDrawingCanvas';
 import { paperTextures } from '@/components/ConfigPanel/PaperTextureSelector';
@@ -15,6 +25,9 @@ interface CopybookPreviewProps {
 
 const A4_RATIO = 297 / 210;
 
+/**
+ * 获取纸张纹理样式
+ */
 const getPaperTextureStyle = (texture: PaperTexture): React.CSSProperties => {
   const option = paperTextures.find((p) => p.value === texture);
   if (option) {
@@ -23,82 +36,69 @@ const getPaperTextureStyle = (texture: PaperTexture): React.CSSProperties => {
   return { backgroundColor: '#ffffff' };
 };
 
-const selector = (s: {
-  textType: CopybookConfig['textType'];
-  text: CopybookConfig['text'];
-  fontId: CopybookConfig['fontId'];
-  gridType: CopybookConfig['gridType'];
-  cellSize: CopybookConfig['cellSize'];
-  colsPerRow: CopybookConfig['colsPerRow'];
-  rows: CopybookConfig['rows'];
-  writingDirection: WritingDirection;
-  fontColor: CopybookConfig['fontColor'];
-  gridColor: CopybookConfig['gridColor'];
-  showDashed: CopybookConfig['showDashed'];
-  showTrace: CopybookConfig['showTrace'];
-  traceOpacity: CopybookConfig['traceOpacity'];
-  traceDisplayMode: TraceDisplayMode;
-  title: CopybookConfig['title'];
-  subtitle: CopybookConfig['subtitle'];
-  nameField: CopybookConfig['nameField'];
-  dateField: CopybookConfig['dateField'];
-  classField: CopybookConfig['classField'];
-  headerPosition: CopybookConfig['headerPosition'];
-  showLineNumbers: CopybookConfig['showLineNumbers'];
-  paperTexture: CopybookConfig['paperTexture'];
-  watermark: CopybookConfig['watermark'];
-  completedCells: any;
-}): CopybookConfig & {
-  title: string;
-  subtitle: string;
-  nameField: HeaderFieldConfig;
-  dateField: HeaderFieldConfig;
-  classField: HeaderFieldConfig;
-  headerPosition: HeaderPosition;
-  showLineNumbers: boolean;
-  paperTexture: PaperTexture;
-  watermark: WatermarkConfig;
-  completedCells: any;
-} => ({
-  textType: s.textType,
-  text: s.text,
-  fontId: s.fontId,
-  gridType: s.gridType,
-  cellSize: s.cellSize,
-  colsPerRow: s.colsPerRow,
-  rows: s.rows,
-  writingDirection: s.writingDirection,
-  fontColor: s.fontColor,
-  gridColor: s.gridColor,
-  showDashed: s.showDashed,
-  showTrace: s.showTrace,
-  traceOpacity: s.traceOpacity,
-  traceDisplayMode: s.traceDisplayMode,
-  title: s.title,
-  subtitle: s.subtitle,
-  nameField: s.nameField,
-  dateField: s.dateField,
-  classField: s.classField,
-  headerPosition: s.headerPosition,
-  showLineNumbers: s.showLineNumbers,
-  paperTexture: s.paperTexture,
-  watermark: s.watermark,
-  completedCells: s.completedCells,
-});
-
 const LINE_NUMBER_WIDTH = 28;
 
+/**
+ * 判断是否为垂直书写方向
+ */
 function isVerticalDirection(direction: WritingDirection): boolean {
   return direction === 'vertical-rtl' || direction === 'vertical-ltr';
 }
 
+/**
+ * 字帖预览组件
+ *
+ * 职责：
+ * - 根据配置渲染字帖页面
+ * - 展示网格、文字、水印等内容
+ * - 集成绘图画布
+ *
+ * 从多个 store 获取所需状态，组合后渲染视图。
+ */
 const CopybookPreview = forwardRef<HTMLDivElement, CopybookPreviewProps>(
   ({ className, overrideConfig }, ref) => {
-    const storeConfig = useCopybookStore(useShallow(selector));
+    /** 从配置 store 获取配置 */
+    const configState = useConfigStore(
+      useShallow((s) => ({
+        textType: s.textType,
+        text: s.text,
+        fontId: s.fontId,
+        gridType: s.gridType,
+        cellSize: s.cellSize,
+        colsPerRow: s.colsPerRow,
+        rows: s.rows,
+        writingDirection: s.writingDirection,
+        fontColor: s.fontColor,
+        gridColor: s.gridColor,
+        showDashed: s.showDashed,
+        showTrace: s.showTrace,
+        traceOpacity: s.traceOpacity,
+        traceDisplayMode: s.traceDisplayMode,
+        title: s.title,
+        subtitle: s.subtitle,
+        nameField: s.nameField,
+        dateField: s.dateField,
+        classField: s.classField,
+        headerPosition: s.headerPosition,
+        showLineNumbers: s.showLineNumbers,
+        paperTexture: s.paperTexture,
+        watermark: s.watermark,
+      }))
+    );
+
+    /** 从绘图 store 获取完成度状态 */
+    const { completedCells } = useDrawingStore(
+      useShallow((s) => ({
+        completedCells: s.completedCells,
+      }))
+    );
+
+    /** 合并配置 */
     const config = useMemo(() => {
-      return { ...storeConfig, ...overrideConfig };
-    }, [storeConfig, overrideConfig]);
-    const font = getFontById(config.fontId);
+      return { ...configState, ...overrideConfig, completedCells };
+    }, [configState, overrideConfig, completedCells]);
+
+    const font = useMemo(() => getFontById(config.fontId), [config.fontId]);
 
     const allChars = useMemo(() => {
       return extractContentChars(config.text);
@@ -158,26 +158,32 @@ const CopybookPreview = forwardRef<HTMLDivElement, CopybookPreviewProps>(
 
     const paperStyle = getPaperTextureStyle(config.paperTexture);
 
-    const shouldShowTraceForCell = (
-      mode: TraceDisplayMode,
-      isEmptyCell: boolean,
-      validCharIndex: number,
-      rowIdx: number
-    ): boolean => {
-      if (isEmptyCell) return false;
-      switch (mode) {
-        case 'all':
-          return true;
-        case 'every2':
-          return validCharIndex % 2 === 0;
-        case 'every4':
-          return validCharIndex % 4 === 0;
-        case 'firstRow':
-          return rowIdx === 0;
-        default:
-          return true;
-      }
-    };
+    /**
+     * 判断单元格是否应该显示描红
+     */
+    const shouldShowTraceForCell = useCallback(
+      (
+        mode: TraceDisplayMode,
+        isEmptyCell: boolean,
+        validCharIndex: number,
+        rowIdx: number
+      ): boolean => {
+        if (isEmptyCell) return false;
+        switch (mode) {
+          case 'all':
+            return true;
+          case 'every2':
+            return validCharIndex % 2 === 0;
+          case 'every4':
+            return validCharIndex % 4 === 0;
+          case 'firstRow':
+            return rowIdx === 0;
+          default:
+            return true;
+        }
+      },
+      []
+    );
 
     return (
       <div

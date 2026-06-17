@@ -2,7 +2,10 @@ import { useRef, useState, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { Settings, Eye, PenTool, ChevronDown, Calendar as CalendarIcon, Sparkles, Gauge, Type, ScrollText, BookMarked, Droplet, Clock, Hash, CheckCircle, Percent, Wand2 } from 'lucide-react';
 import WatermarkConfig from '@/components/ConfigPanel/WatermarkConfig';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useConfigStore } from '@/store/useConfigStore';
+import { useDrawingStore } from '@/store/useDrawingStore';
+import { useTextStore } from '@/store/useTextStore';
+import { parseTextToPages } from '@/utils/textParser';
 import CopybookPreview from '@/components/Preview/CopybookPreview';
 import DrawingToolbar from '@/components/Preview/DrawingToolbar';
 import TextTypeSelector from '@/components/ConfigPanel/TextTypeSelector';
@@ -64,21 +67,36 @@ export default function Home() {
     record?: CheckinRecord;
   }>({});
 
-  const { text, difficultyLevel, getTotalValidCells, getCompletionPercentage, getCompletedCellsCount } = useCopybookStore(
+  const { text, colsPerRow, rows, writingDirection } = useConfigStore(
     useShallow((s) => ({
       text: s.text,
+      colsPerRow: s.colsPerRow,
+      rows: s.rows,
+      writingDirection: s.writingDirection,
+    }))
+  );
+  const { difficultyLevel } = useTextStore(
+    useShallow((s) => ({
       difficultyLevel: s.difficultyLevel,
-      getTotalValidCells: s.getTotalValidCells,
+    }))
+  );
+  const { getCompletionPercentage, getCompletedCellsCount } = useDrawingStore(
+    useShallow((s) => ({
       getCompletionPercentage: s.getCompletionPercentage,
       getCompletedCellsCount: s.getCompletedCellsCount,
     }))
   );
 
+  const getTotalValidCells = useMemo(() => {
+    const parsed = parseTextToPages(text, colsPerRow, rows, writingDirection);
+    return parsed.totalChars;
+  }, [text, colsPerRow, rows, writingDirection]);
+
   const stats = useMemo(() => {
     const totalChars = Array.from(text).filter((ch) => ch !== '\n' && ch !== '\r' && ch !== '\t' && ch !== ' ').length;
-    const validCells = getTotalValidCells();
+    const validCells = getTotalValidCells;
     const completedCells = getCompletedCellsCount();
-    const completionRate = getCompletionPercentage();
+    const completionRate = getCompletionPercentage(validCells);
 
     const secondsPerChar = {
       beginner: 15,

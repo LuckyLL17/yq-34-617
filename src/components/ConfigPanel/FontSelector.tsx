@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Star } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useConfigStore } from '@/store/useConfigStore';
 import { useFavoriteFontStore } from '@/store/useFavoriteFontStore';
 import { getFontById, getSortedFontsByType } from '@/utils/fonts';
 
@@ -10,7 +10,7 @@ interface FontSelectorProps {
 }
 
 export default function FontSelector({ onOpenCompare }: FontSelectorProps) {
-  const { textType, fontId, setFontId } = useCopybookStore(
+  const { textType, fontId, setFontId } = useConfigStore(
     useShallow((s) => ({
       textType: s.textType,
       fontId: s.fontId,
