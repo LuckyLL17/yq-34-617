@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import QRCode from 'qrcode';
 import { Calendar, Flame, Download, Sparkles } from 'lucide-react';
-import { useCheckinStore, formatDate, parseDate } from '@/store/useCheckinStore';
+import { useUserDataStore, formatDate, parseDate } from '@/store';
 import type { CheckinRecord } from '@/types';
 
 interface PosterGeneratorProps {
@@ -38,8 +38,8 @@ export default function PosterGenerator({
   initialRecord,
 }: PosterGeneratorProps) {
   const posterRef = useRef<HTMLDivElement>(null);
-  const records = useCheckinStore((s) => s.records);
-  const stats = useMemo(() => useCheckinStore.getState().getStats(), [records]);
+  const checkinRecords = useUserDataStore((s) => s.checkinRecords);
+  const stats = useMemo(() => useUserDataStore.getState().getCheckinStats(), [checkinRecords]);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [downloading, setDownloading] = useState(false);
 
@@ -49,7 +49,7 @@ export default function PosterGenerator({
     if (initialRecord) return initialRecord;
     const thumb = initialThumbnail ?? '';
     const cc = initialCharCount ?? 0;
-    const existing = useCheckinStore.getState().getRecordByDate(today);
+    const existing = useUserDataStore.getState().getCheckinRecordByDate(today);
     if (existing) {
       return { ...existing, posterThumbnail: thumb || existing.posterThumbnail };
     }

@@ -1,6 +1,6 @@
 import { useShallow } from 'zustand/react/shallow';
 import { Shuffle, ArrowDownUp, RotateCcw, ListOrdered, Filter } from 'lucide-react';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useConfigStore, usePracticeStore } from '@/store';
 import type { SortMode } from '@/types';
 
 const sortOptions: { id: SortMode; label: string; icon: typeof Shuffle }[] = [
@@ -11,8 +11,13 @@ const sortOptions: { id: SortMode; label: string; icon: typeof Shuffle }[] = [
 ];
 
 export default function TextProcessor() {
+  const { textType } = useConfigStore(
+    useShallow((s) => ({
+      textType: s.textType,
+    }))
+  );
+
   const {
-    textType,
     minStroke,
     maxStroke,
     sortMode,
@@ -24,9 +29,8 @@ export default function TextProcessor() {
     applyStrokeFilter,
     applyTextSort,
     resetTextProcessing,
-  } = useCopybookStore(
+  } = usePracticeStore(
     useShallow((s) => ({
-      textType: s.textType,
       minStroke: s.minStroke,
       maxStroke: s.maxStroke,
       sortMode: s.sortMode,

@@ -1,6 +1,6 @@
 import { Hash, Type, Languages } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useConfigStore } from '@/store';
 import type { TextType } from '@/types';
 
 const types: { id: TextType; label: string; icon: typeof Hash }[] = [
@@ -10,7 +10,7 @@ const types: { id: TextType; label: string; icon: typeof Hash }[] = [
 ];
 
 export default function TextTypeSelector() {
-  const { textType, setTextType } = useCopybookStore(
+  const { textType, setTextType } = useConfigStore(
     useShallow((s) => ({
       textType: s.textType,
       setTextType: s.setTextType,

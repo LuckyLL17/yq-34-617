@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Flame, Target, Calendar as CalendarIcon, Award } from 'lucide-react';
-import { useCheckinStore, formatDate } from '@/store/useCheckinStore';
+import { useUserDataStore, formatDate } from '@/store';
 import type { CheckinRecord } from '@/types';
 
 interface CalendarViewProps {
@@ -11,13 +11,13 @@ const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
 
 export default function CalendarView({ onSelectDate }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(() => new Date());
-  const records = useCheckinStore((s) => s.records);
+  const checkinRecords = useUserDataStore((s) => s.checkinRecords);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const stats = useMemo(() => useCheckinStore.getState().getStats(), [records]);
-  const monthRecords = useMemo(() => useCheckinStore.getState().getMonthRecords(year, month), [records, year, month]);
-  const maxCount = useMemo(() => Math.max(useCheckinStore.getState().getMaxCharCount(), 1), [records]);
+  const stats = useMemo(() => useUserDataStore.getState().getCheckinStats(), [checkinRecords]);
+  const monthRecords = useMemo(() => useUserDataStore.getState().getMonthCheckinRecords(year, month), [checkinRecords, year, month]);
+  const maxCount = useMemo(() => Math.max(useUserDataStore.getState().getMaxCharCount(), 1), [checkinRecords]);
 
   const today = useMemo(() => formatDate(new Date()), []);
 
