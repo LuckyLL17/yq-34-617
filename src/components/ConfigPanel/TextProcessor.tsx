@@ -1,6 +1,7 @@
 import { useShallow } from 'zustand/react/shallow';
 import { Shuffle, ArrowDownUp, RotateCcw, ListOrdered, Filter } from 'lucide-react';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useTextProcessingStore } from '@/store/useTextProcessingStore';
+import { useCopybookConfigStore } from '@/store/useCopybookConfigStore';
 import type { SortMode } from '@/types';
 
 const sortOptions: { id: SortMode; label: string; icon: typeof Shuffle }[] = [
@@ -11,8 +12,8 @@ const sortOptions: { id: SortMode; label: string; icon: typeof Shuffle }[] = [
 ];
 
 export default function TextProcessor() {
+  const textType = useCopybookConfigStore((s) => s.textType);
   const {
-    textType,
     minStroke,
     maxStroke,
     sortMode,
@@ -22,11 +23,9 @@ export default function TextProcessor() {
     setSortMode,
     setInterleaveInterval,
     applyStrokeFilter,
-    applyTextSort,
     resetTextProcessing,
-  } = useCopybookStore(
+  } = useTextProcessingStore(
     useShallow((s) => ({
-      textType: s.textType,
       minStroke: s.minStroke,
       maxStroke: s.maxStroke,
       sortMode: s.sortMode,
@@ -36,7 +35,6 @@ export default function TextProcessor() {
       setSortMode: s.setSortMode,
       setInterleaveInterval: s.setInterleaveInterval,
       applyStrokeFilter: s.applyStrokeFilter,
-      applyTextSort: s.applyTextSort,
       resetTextProcessing: s.resetTextProcessing,
     }))
   );
@@ -54,9 +52,9 @@ export default function TextProcessor() {
             </label>
             <button
               onClick={applyStrokeFilter}
-              className="px-3 py-1.5 text-xs font-medium text-white bg-[#8B2E20] rounded-md hover:bg-[#7a281c] active:scale-[0.98] transition-all"
-            >
-              应用过滤
+            className="px-3 py-1.5 text-xs font-medium text-white bg-[#8B2E20] rounded-md hover:bg-[#7a281c] active:scale-[0.98] transition-all"
+          >
+            应用过滤
             </button>
           </div>
           <div className="flex items-center gap-3">
@@ -97,7 +95,7 @@ export default function TextProcessor() {
             文字排序
           </label>
           <button
-            onClick={applyTextSort}
+            onClick={applyStrokeFilter}
             className="px-3 py-1.5 text-xs font-medium text-white bg-[#8B2E20] rounded-md hover:bg-[#7a281c] active:scale-[0.98] transition-all"
           >
             应用排序

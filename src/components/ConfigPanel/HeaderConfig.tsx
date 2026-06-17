@@ -1,5 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useCopybookConfigStore } from '@/store/useCopybookConfigStore';
 import type { HeaderPosition } from '@/types';
 
 const headerPositions: { id: HeaderPosition; label: string }[] = [
@@ -24,7 +24,7 @@ export default function HeaderConfig() {
     setClassField,
     setHeaderPosition,
     setShowLineNumbers,
-  } = useCopybookStore(
+  } = useCopybookConfigStore(
     useShallow((s) => ({
       title: s.title,
       subtitle: s.subtitle,

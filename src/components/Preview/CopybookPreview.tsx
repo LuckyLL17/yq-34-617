@@ -1,6 +1,7 @@
 import { forwardRef, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useCopybookConfigStore } from '@/store/useCopybookConfigStore';
+import { useDrawingStore } from '@/store/useDrawingStore';
 import { getFontById } from '@/utils/fonts';
 import type { CopybookConfig, HeaderPosition, HeaderFieldConfig, PaperTexture, WatermarkConfig, TraceDisplayMode, WritingDirection } from '@/types';
 import GridCell from './GridCell';
@@ -23,7 +24,7 @@ const getPaperTextureStyle = (texture: PaperTexture): React.CSSProperties => {
   return { backgroundColor: '#ffffff' };
 };
 
-const selector = (s: {
+const configSelector = (s: {
   textType: CopybookConfig['textType'];
   text: CopybookConfig['text'];
   fontId: CopybookConfig['fontId'];
@@ -47,7 +48,6 @@ const selector = (s: {
   showLineNumbers: CopybookConfig['showLineNumbers'];
   paperTexture: CopybookConfig['paperTexture'];
   watermark: CopybookConfig['watermark'];
-  completedCells: any;
 }): CopybookConfig & {
   title: string;
   subtitle: string;
@@ -58,7 +58,6 @@ const selector = (s: {
   showLineNumbers: boolean;
   paperTexture: PaperTexture;
   watermark: WatermarkConfig;
-  completedCells: any;
 } => ({
   textType: s.textType,
   text: s.text,
@@ -83,7 +82,6 @@ const selector = (s: {
   showLineNumbers: s.showLineNumbers,
   paperTexture: s.paperTexture,
   watermark: s.watermark,
-  completedCells: s.completedCells,
 });
 
 const LINE_NUMBER_WIDTH = 28;
@@ -94,10 +92,11 @@ function isVerticalDirection(direction: WritingDirection): boolean {
 
 const CopybookPreview = forwardRef<HTMLDivElement, CopybookPreviewProps>(
   ({ className, overrideConfig }, ref) => {
-    const storeConfig = useCopybookStore(useShallow(selector));
+    const storeConfig = useCopybookConfigStore(useShallow(configSelector));
+    const completedCells = useDrawingStore((s) => s.completedCells);
     const config = useMemo(() => {
-      return { ...storeConfig, ...overrideConfig };
-    }, [storeConfig, overrideConfig]);
+      return { ...storeConfig, completedCells, ...overrideConfig };
+    }, [storeConfig, completedCells, overrideConfig]);
     const font = getFontById(config.fontId);
 
     const allChars = useMemo(() => {

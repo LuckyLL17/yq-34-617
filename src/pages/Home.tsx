@@ -2,7 +2,9 @@ import { useRef, useState, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { Settings, Eye, PenTool, ChevronDown, Calendar as CalendarIcon, Sparkles, Gauge, Type, ScrollText, BookMarked, Droplet, Clock, Hash, CheckCircle, Percent, Wand2 } from 'lucide-react';
 import WatermarkConfig from '@/components/ConfigPanel/WatermarkConfig';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useCopybookConfigStore } from '@/store/useCopybookConfigStore';
+import { useDrawingStore } from '@/store/useDrawingStore';
+import { useTextProcessingStore } from '@/store/useTextProcessingStore';
 import CopybookPreview from '@/components/Preview/CopybookPreview';
 import DrawingToolbar from '@/components/Preview/DrawingToolbar';
 import TextTypeSelector from '@/components/ConfigPanel/TextTypeSelector';
@@ -64,11 +66,15 @@ export default function Home() {
     record?: CheckinRecord;
   }>({});
 
-  const { text, difficultyLevel, getTotalValidCells, getCompletionPercentage, getCompletedCellsCount } = useCopybookStore(
+  const text = useCopybookConfigStore((s) => s.text);
+  const getTotalValidCells = useCopybookConfigStore((s) => s.getTotalValidCells);
+  const { difficultyLevel } = useTextProcessingStore(
     useShallow((s) => ({
-      text: s.text,
       difficultyLevel: s.difficultyLevel,
-      getTotalValidCells: s.getTotalValidCells,
+    }))
+  );
+  const { getCompletionPercentage, getCompletedCellsCount } = useDrawingStore(
+    useShallow((s) => ({
       getCompletionPercentage: s.getCompletionPercentage,
       getCompletedCellsCount: s.getCompletedCellsCount,
     }))

@@ -18,7 +18,8 @@ import {
   Check,
 } from 'lucide-react';
 import { useTemplateStore } from '@/store/useTemplateStore';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useCopybookConfigStore } from '@/store/useCopybookConfigStore';
+import { useDrawingStore } from '@/store/useDrawingStore';
 import {
   exportTemplatesToMergedPdf,
   exportTemplatesSeparately,
@@ -39,7 +40,7 @@ function formatDate(timestamp: number): string {
 }
 
 function getTemplateConfigSnapshot(): CopybookConfig {
-  const state = useCopybookStore.getState();
+  const state = useCopybookConfigStore.getState();
   return {
     textType: state.textType,
     text: state.text,
@@ -68,12 +69,8 @@ function getTemplateConfigSnapshot(): CopybookConfig {
 }
 
 function applyConfigToStore(config: CopybookConfig): void {
-  useCopybookStore.setState({
-    ...config,
-    pagePaths: {},
-    pageRedoStack: {},
-    completedCells: {},
-  });
+  useCopybookConfigStore.setState({ ...config });
+  useDrawingStore.setState({ pagePaths: {}, pageRedoStack: {}, completedCells: {} });
 }
 
 export default function TemplateManager({ className }: TemplateManagerProps) {
@@ -122,7 +119,7 @@ export default function TemplateManager({ className }: TemplateManagerProps) {
     templates.length > 0 && selectedTemplateIds.length === templates.length;
 
   const handleOpenSaveModal = () => {
-    const state = useCopybookStore.getState();
+    const state = useCopybookConfigStore.getState();
     const suggested = state.title || state.text.slice(0, 15) || '字帖模板';
     setSaveName(suggested);
     setShowSaveModal(true);

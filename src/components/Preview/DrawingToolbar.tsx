@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { Undo2, Redo2, Eraser, Pencil, Trash2, ChevronUp, ChevronDown, Target, CheckCircle2 } from 'lucide-react';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useDrawingStore } from '@/store/useDrawingStore';
+import { useCopybookConfigStore } from '@/store/useCopybookConfigStore';
 
 const penColorPresets = [
   { name: '墨黑', value: '#1a1a1a' },
@@ -35,8 +36,7 @@ export default function DrawingToolbar() {
     clearAllPaths,
     getCompletionPercentage,
     getCompletedCellsCount,
-    getTotalValidCells,
-  } = useCopybookStore(
+  } = useDrawingStore(
     useShallow((s) => ({
       drawingEnabled: s.drawingEnabled,
       penColor: s.penColor,
@@ -51,9 +51,10 @@ export default function DrawingToolbar() {
       clearAllPaths: s.clearAllPaths,
       getCompletionPercentage: s.getCompletionPercentage,
       getCompletedCellsCount: s.getCompletedCellsCount,
-      getTotalValidCells: s.getTotalValidCells,
     }))
   );
+
+  const getTotalValidCells = useCopybookConfigStore((s) => s.getTotalValidCells);
 
   const { hasUndo, hasRedo, hasPaths } = useMemo(() => {
     let undo = false;
