@@ -1,6 +1,7 @@
 import { Hash, Type, Languages } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useCopybookConfigStore } from '@/store/useCopybookConfigStore';
+import { useTextProcessingStore } from '@/store/useTextProcessingStore';
 import type { TextType } from '@/types';
 
 const types: { id: TextType; label: string; icon: typeof Hash }[] = [
@@ -10,12 +11,14 @@ const types: { id: TextType; label: string; icon: typeof Hash }[] = [
 ];
 
 export default function TextTypeSelector() {
-  const { textType, setTextType } = useCopybookStore(
+  const { textType, setTextType } = useCopybookConfigStore(
     useShallow((s) => ({
       textType: s.textType,
       setTextType: s.setTextType,
     }))
   );
+
+  const resetByTextType = useTextProcessingStore((s) => s.resetByTextType);
 
   return (
     <div className="space-y-2">
@@ -27,7 +30,10 @@ export default function TextTypeSelector() {
           return (
             <button
               key={t.id}
-              onClick={() => setTextType(t.id)}
+              onClick={() => {
+                setTextType(t.id);
+                resetByTextType(t.id);
+              }}
               className={`flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-lg border-2 transition-all duration-200 ${
                 active
                   ? 'border-[#8B2E20] bg-[#8B2E20]/5 text-[#8B2E20] shadow-sm'

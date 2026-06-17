@@ -1,5 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useCopybookConfigStore } from '@/store/useCopybookConfigStore';
 import type { DifficultyLevel } from '@/types';
 import { Sparkles, Target, Flame, Grid3x3, Eye, Layers } from 'lucide-react';
 
@@ -61,7 +61,7 @@ const LEVEL_DETAILS: Record<DifficultyLevel, { cellSize: string; layout: string;
 };
 
 export default function DifficultySelector() {
-  const { difficultyLevel, setDifficultyLevel } = useCopybookStore(
+  const { difficultyLevel, setDifficultyLevel } = useCopybookConfigStore(
     useShallow((s) => ({
       difficultyLevel: s.difficultyLevel,
       setDifficultyLevel: s.setDifficultyLevel,

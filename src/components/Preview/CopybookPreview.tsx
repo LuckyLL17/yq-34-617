@@ -1,6 +1,7 @@
 import { forwardRef, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useCopybookConfigStore } from '@/store/useCopybookConfigStore';
+import { useProgressStore } from '@/store/useProgressStore';
 import { getFontById } from '@/utils/fonts';
 import type { CopybookConfig, HeaderPosition, HeaderFieldConfig, PaperTexture, WatermarkConfig, TraceDisplayMode, WritingDirection } from '@/types';
 import GridCell from './GridCell';
@@ -15,6 +16,9 @@ interface CopybookPreviewProps {
 
 const A4_RATIO = 297 / 210;
 
+/**
+ * 获取纸张纹理样式
+ */
 const getPaperTextureStyle = (texture: PaperTexture): React.CSSProperties => {
   const option = paperTextures.find((p) => p.value === texture);
   if (option) {
@@ -23,7 +27,10 @@ const getPaperTextureStyle = (texture: PaperTexture): React.CSSProperties => {
   return { backgroundColor: '#ffffff' };
 };
 
-const selector = (s: {
+/**
+ * 配置选择器 - 从配置 store 中获取所需配置
+ */
+const configSelector = (s: {
   textType: CopybookConfig['textType'];
   text: CopybookConfig['text'];
   fontId: CopybookConfig['fontId'];
@@ -47,7 +54,6 @@ const selector = (s: {
   showLineNumbers: CopybookConfig['showLineNumbers'];
   paperTexture: CopybookConfig['paperTexture'];
   watermark: CopybookConfig['watermark'];
-  completedCells: any;
 }): CopybookConfig & {
   title: string;
   subtitle: string;
@@ -58,7 +64,6 @@ const selector = (s: {
   showLineNumbers: boolean;
   paperTexture: PaperTexture;
   watermark: WatermarkConfig;
-  completedCells: any;
 } => ({
   textType: s.textType,
   text: s.text,
@@ -83,21 +88,28 @@ const selector = (s: {
   showLineNumbers: s.showLineNumbers,
   paperTexture: s.paperTexture,
   watermark: s.watermark,
-  completedCells: s.completedCells,
 });
 
 const LINE_NUMBER_WIDTH = 28;
 
+/**
+ * 判断是否为竖排方向
+ */
 function isVerticalDirection(direction: WritingDirection): boolean {
   return direction === 'vertical-rtl' || direction === 'vertical-ltr';
 }
 
 const CopybookPreview = forwardRef<HTMLDivElement, CopybookPreviewProps>(
   ({ className, overrideConfig }, ref) => {
-    const storeConfig = useCopybookStore(useShallow(selector));
+    const storeConfig = useCopybookConfigStore(useShallow(configSelector));
+    const { completedCells } = useProgressStore(
+      useShallow((s) => ({ completedCells: s.completedCells }))
+    );
+
     const config = useMemo(() => {
       return { ...storeConfig, ...overrideConfig };
     }, [storeConfig, overrideConfig]);
+
     const font = getFontById(config.fontId);
 
     const allChars = useMemo(() => {
@@ -158,6 +170,9 @@ const CopybookPreview = forwardRef<HTMLDivElement, CopybookPreviewProps>(
 
     const paperStyle = getPaperTextureStyle(config.paperTexture);
 
+    /**
+     * 判断单元格是否应该显示描红
+     */
     const shouldShowTraceForCell = (
       mode: TraceDisplayMode,
       isEmptyCell: boolean,
@@ -185,7 +200,7 @@ const CopybookPreview = forwardRef<HTMLDivElement, CopybookPreviewProps>(
         className={`flex flex-col items-center gap-8 ${className || ''}`}
       >
         {pageGroups.map((pageRows, pageIdx) => {
-          const pageCompletedCells = config.completedCells[pageIdx] || {};
+          const pageCompletedCells = completedCells[pageIdx] || {};
           let pageValidCharCounter = 0;
           return (
             <div

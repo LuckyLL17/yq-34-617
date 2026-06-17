@@ -2,7 +2,8 @@ import { useRef, useState, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { Settings, Eye, PenTool, ChevronDown, Calendar as CalendarIcon, Sparkles, Gauge, Type, ScrollText, BookMarked, Droplet, Clock, Hash, CheckCircle, Percent, Wand2 } from 'lucide-react';
 import WatermarkConfig from '@/components/ConfigPanel/WatermarkConfig';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useCopybookConfigStore } from '@/store/useCopybookConfigStore';
+import { useProgressStore } from '@/store/useProgressStore';
 import CopybookPreview from '@/components/Preview/CopybookPreview';
 import DrawingToolbar from '@/components/Preview/DrawingToolbar';
 import TextTypeSelector from '@/components/ConfigPanel/TextTypeSelector';
@@ -64,10 +65,18 @@ export default function Home() {
     record?: CheckinRecord;
   }>({});
 
-  const { text, difficultyLevel, getTotalValidCells, getCompletionPercentage, getCompletedCellsCount } = useCopybookStore(
+  const { text, difficultyLevel, colsPerRow, rows, writingDirection } = useCopybookConfigStore(
     useShallow((s) => ({
       text: s.text,
       difficultyLevel: s.difficultyLevel,
+      colsPerRow: s.colsPerRow,
+      rows: s.rows,
+      writingDirection: s.writingDirection,
+    }))
+  );
+
+  const { getTotalValidCells, getCompletionPercentage, getCompletedCellsCount } = useProgressStore(
+    useShallow((s) => ({
       getTotalValidCells: s.getTotalValidCells,
       getCompletionPercentage: s.getCompletionPercentage,
       getCompletedCellsCount: s.getCompletedCellsCount,
@@ -76,9 +85,9 @@ export default function Home() {
 
   const stats = useMemo(() => {
     const totalChars = Array.from(text).filter((ch) => ch !== '\n' && ch !== '\r' && ch !== '\t' && ch !== ' ').length;
-    const validCells = getTotalValidCells();
+    const validCells = getTotalValidCells(text, colsPerRow, rows, writingDirection);
     const completedCells = getCompletedCellsCount();
-    const completionRate = getCompletionPercentage();
+    const completionRate = getCompletionPercentage(text, colsPerRow, rows, writingDirection);
 
     const secondsPerChar = {
       beginner: 15,
@@ -109,7 +118,7 @@ export default function Home() {
       estimatedTime,
       difficultyLabel: difficultyLevel === 'beginner' ? '入门' : difficultyLevel === 'intermediate' ? '进阶' : '挑战',
     };
-  }, [text, difficultyLevel, getTotalValidCells, getCompletionPercentage, getCompletedCellsCount]);
+  }, [text, difficultyLevel, colsPerRow, rows, writingDirection, getTotalValidCells, getCompletionPercentage, getCompletedCellsCount]);
 
   const handleCheckinSuccess = (data: { thumbnail: string; charCount: number }) => {
     setPosterData({ thumbnail: data.thumbnail, charCount: data.charCount });

@@ -14,7 +14,9 @@ import {
   Image,
   FileImage,
 } from 'lucide-react';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useCopybookConfigStore } from '@/store/useCopybookConfigStore';
+import { useDrawingStore } from '@/store/useDrawingStore';
+import { useProgressStore } from '@/store/useProgressStore';
 import { useCheckinStore, formatDate } from '@/store/useCheckinStore';
 import { exportCopybook, type ExportOptions, type PaperSize, type PageOrientation, type ExportFormat, type ImageQuality } from '@/utils/pdfExport';
 import html2canvas from 'html2canvas';
@@ -38,13 +40,23 @@ export default function ExportButton({ previewRef, onCheckinSuccess }: ExportBut
   const [exportFormat, setExportFormat] = useState<ExportFormat>('pdf');
   const [imageQuality, setImageQuality] = useState<ImageQuality>('high');
   const [pageRange, setPageRange] = useState<'all' | 'current'>('all');
-  const { resetConfig, pagePaths, textType, fontId, text } = useCopybookStore(
+  const { resetConfig, textType, fontId, text } = useCopybookConfigStore(
     useShallow((s) => ({
       resetConfig: s.resetConfig,
-      pagePaths: s.pagePaths,
       textType: s.textType,
       fontId: s.fontId,
       text: s.text,
+    }))
+  );
+  const { pagePaths, clearAllPaths } = useDrawingStore(
+    useShallow((s) => ({
+      pagePaths: s.pagePaths,
+      clearAllPaths: s.clearAllPaths,
+    }))
+  );
+  const { clearCompletedCells } = useProgressStore(
+    useShallow((s) => ({
+      clearCompletedCells: s.clearCompletedCells,
     }))
   );
   const { checkin } = useCheckinStore();
@@ -141,6 +153,8 @@ export default function ExportButton({ previewRef, onCheckinSuccess }: ExportBut
   const handleReset = () => {
     if (confirm('确定要重置所有配置吗？')) {
       resetConfig();
+      clearAllPaths();
+      clearCompletedCells();
     }
   };
 
