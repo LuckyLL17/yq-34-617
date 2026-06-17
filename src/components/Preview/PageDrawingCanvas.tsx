@@ -1,6 +1,9 @@
 import { useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useCopybookStore } from '@/store/useCopybookStore';
+import { useDrawingStore } from '@/store/useDrawingStore';
+import { useProgressStore } from '@/store/useProgressStore';
+import { useCopybookConfigStore } from '@/store/useCopybookConfigStore';
+import { DrawingCanvasEngine, CellCoverageCalculator } from '@/engines/canvas';
 import type { DrawingPath } from '@/types';
 
 const EMPTY_ARRAY: DrawingPath[] = [];
@@ -16,62 +19,77 @@ export interface PageDrawingCanvasHandle {
   redraw: () => void;
 }
 
+/**
+ * 页面绘图 Canvas 组件
+ * 使用 DrawingCanvasEngine 处理渲染，CellCoverageCalculator 处理覆盖率计算
+ */
 const PageDrawingCanvas = forwardRef<PageDrawingCanvasHandle, PageDrawingCanvasProps>(
   function PageDrawingCanvas({ pageIndex, pageWidth, pageHeight }, ref) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const engineRef = useRef<DrawingCanvasEngine | null>(null);
     const isDrawingRef = useRef(false);
     const currentPathRef = useRef<{ x: number; y: number }[]>([]);
     const lastPointRef = useRef<{ x: number; y: number } | null>(null);
 
-    const { pagePaths, penColor, penWidth, drawingEnabled, addPathToPage, cellSize, colsPerRow, rows, showLineNumbers, setCellCompletion } = useCopybookStore(
+    const { pagePaths, penColor, penWidth, drawingEnabled, addPathToPage } = useDrawingStore(
       useShallow((s) => ({
         pagePaths: s.pagePaths[pageIndex] ?? EMPTY_ARRAY,
         penColor: s.penColor,
         penWidth: s.penWidth,
         drawingEnabled: s.drawingEnabled,
         addPathToPage: s.addPathToPage,
+      }))
+    );
+
+    const { cellSize, colsPerRow, rows, showLineNumbers } = useCopybookConfigStore(
+      useShallow((s) => ({
         cellSize: s.cellSize,
         colsPerRow: s.colsPerRow,
         rows: s.rows,
         showLineNumbers: s.showLineNumbers,
+      }))
+    );
+
+    const { setCellCompletion } = useProgressStore(
+      useShallow((s) => ({
         setCellCompletion: s.setCellCompletion,
       }))
     );
 
     const lineNumberWidth = showLineNumbers ? LINE_NUMBER_WIDTH : 0;
 
+    /**
+     * 计算页面所有单元格的覆盖率
+     */
     const calculateCellCoverage = useCallback(
       (allPaths: DrawingPath[]) => {
         if (!drawingEnabled || allPaths.length === 0) return;
 
-        const gridWidth = colsPerRow * cellSize;
-        const gridHeight = rows * cellSize;
-
-        for (let row = 0; row < rows; row++) {
-          for (let col = 0; col < colsPerRow; col++) {
-            const cellX = lineNumberWidth + col * cellSize;
-            const cellY = row * cellSize;
-
-            if (cellX >= gridWidth + lineNumberWidth || cellY >= gridHeight) continue;
-
+        CellCoverageCalculator.calculateGridCoverage(
+          {
+            cols: colsPerRow,
+            rows: rows,
+            cellSize: cellSize,
+            lineNumberWidth,
+          },
+          allPaths,
+          (row, col, coverage) => {
             const cellKey = `${row}-${col}`;
-            const coverage = calculateSingleCellCoverage(cellX, cellY, cellSize, allPaths);
             setCellCompletion(pageIndex, cellKey, coverage);
           }
-        }
+        );
       },
       [drawingEnabled, colsPerRow, rows, cellSize, lineNumberWidth, setCellCompletion, pageIndex]
     );
 
+    /**
+     * 从事件中获取 Canvas 坐标
+     */
     const getCanvasCoords = useCallback(
       (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-        const canvas = canvasRef.current;
-        if (!canvas) return null;
-
-        const rect = canvas.getBoundingClientRect();
-
-        let clientX: number, clientY: number;
         const nativeEvent = e.nativeEvent;
+        let clientX: number, clientY: number;
+
         if ('touches' in nativeEvent && nativeEvent.touches.length > 0) {
           clientX = nativeEvent.touches[0].clientX;
           clientY = nativeEvent.touches[0].clientY;
@@ -82,60 +100,36 @@ const PageDrawingCanvas = forwardRef<PageDrawingCanvasHandle, PageDrawingCanvasP
           return null;
         }
 
-        return {
-          x: clientX - rect.left,
-          y: clientY - rect.top,
-        };
+        return engineRef.current?.getCanvasCoords(clientX, clientY) ?? null;
       },
       []
     );
 
-    const drawPath = useCallback(
-      (ctx: CanvasRenderingContext2D, path: DrawingPath) => {
-        if (path.points.length < 2) return;
-
-        ctx.beginPath();
-        ctx.strokeStyle = path.color;
-        ctx.lineWidth = path.lineWidth;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-
-        ctx.moveTo(path.points[0].x, path.points[0].y);
-        for (let i = 1; i < path.points.length; i++) {
-          ctx.lineTo(path.points[i].x, path.points[i].y);
-        }
-        ctx.stroke();
-      },
-      []
-    );
-
-    const redrawCanvas = useCallback(() => {
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext('2d');
-      if (!canvas || !ctx) return;
-
-      ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.restore();
-
-      for (const path of pagePaths) {
-        drawPath(ctx, path);
-      }
-    }, [pagePaths, drawPath]);
-
+    /**
+     * 绘制当前临时路径
+     */
     const drawCurrentPath = useCallback(() => {
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext('2d');
-      if (!canvas || !ctx || currentPathRef.current.length < 2) return;
+      const engine = engineRef.current;
+      if (!engine || currentPathRef.current.length < 2) return;
 
-      drawPath(ctx, {
-        points: currentPathRef.current,
+      engine.drawTemporaryPath(currentPathRef.current, {
         color: penColor,
         lineWidth: penWidth,
       });
-    }, [penColor, penWidth, drawPath]);
+    }, [penColor, penWidth]);
 
+    /**
+     * 重绘整个 Canvas
+     */
+    const redrawCanvas = useCallback(() => {
+      const engine = engineRef.current;
+      if (!engine) return;
+      engine.redraw(pagePaths);
+    }, [pagePaths]);
+
+    /**
+     * 开始绘制
+     */
     const handleMouseDown = useCallback(
       (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
         if (!drawingEnabled) return;
@@ -151,15 +145,16 @@ const PageDrawingCanvas = forwardRef<PageDrawingCanvasHandle, PageDrawingCanvasP
       [drawingEnabled, getCanvasCoords]
     );
 
+    /**
+     * 绘制中（全局事件）
+     */
     const handleMouseMove = useCallback(
       (e: MouseEvent | TouchEvent) => {
         if (!drawingEnabled || !isDrawingRef.current) return;
         e.preventDefault();
 
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const rect = canvas.getBoundingClientRect();
+        const engine = engineRef.current;
+        if (!engine) return;
 
         let clientX: number, clientY: number;
         if ('touches' in e && e.touches.length > 0) {
@@ -172,19 +167,12 @@ const PageDrawingCanvas = forwardRef<PageDrawingCanvasHandle, PageDrawingCanvasP
           return;
         }
 
-        if (
-          clientX < rect.left ||
-          clientX > rect.right ||
-          clientY < rect.top ||
-          clientY > rect.bottom
-        ) {
+        if (!engine.isPointInCanvas(clientX, clientY)) {
           return;
         }
 
-        const coords = {
-          x: clientX - rect.left,
-          y: clientY - rect.top,
-        };
+        const coords = engine.getCanvasCoords(clientX, clientY);
+        if (!coords) return;
 
         const lastPoint = lastPointRef.current;
         if (lastPoint) {
@@ -202,6 +190,9 @@ const PageDrawingCanvas = forwardRef<PageDrawingCanvasHandle, PageDrawingCanvasP
       [drawingEnabled, redrawCanvas, drawCurrentPath]
     );
 
+    /**
+     * 结束绘制
+     */
     const handleMouseUp = useCallback(() => {
       if (!isDrawingRef.current) return;
 
@@ -225,7 +216,17 @@ const PageDrawingCanvas = forwardRef<PageDrawingCanvasHandle, PageDrawingCanvasP
       redraw: redrawCanvas,
     }));
 
+    /**
+     * 初始化 Canvas 引擎和全局事件监听
+     */
     useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const engine = new DrawingCanvasEngine();
+      engine.attach(canvas, pageWidth, pageHeight);
+      engineRef.current = engine;
+
       const handleGlobalMouseUp = () => handleMouseUp();
       const handleGlobalMouseMove = (e: MouseEvent) => {
         if (isDrawingRef.current) {
@@ -250,37 +251,40 @@ const PageDrawingCanvas = forwardRef<PageDrawingCanvasHandle, PageDrawingCanvasP
         window.removeEventListener('touchend', handleGlobalMouseUp);
         window.removeEventListener('touchcancel', handleGlobalMouseUp);
         window.removeEventListener('touchmove', handleGlobalTouchMove);
+        engine.destroy();
       };
     }, [handleMouseMove, handleMouseUp]);
 
+    /**
+     * 监听尺寸变化，更新 Canvas 大小
+     */
     useEffect(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
+      const engine = engineRef.current;
+      if (!engine) return;
 
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = pageWidth * dpr;
-      canvas.height = pageHeight * dpr;
-      canvas.style.width = `${pageWidth}px`;
-      canvas.style.height = `${pageHeight}px`;
-
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.scale(dpr, dpr);
-      }
-
+      engine.resize(pageWidth, pageHeight);
       redrawCanvas();
     }, [pageWidth, pageHeight, redrawCanvas]);
 
+    /**
+     * 监听路径变化，重绘 Canvas
+     */
     useEffect(() => {
       redrawCanvas();
     }, [redrawCanvas]);
 
+    /**
+     * 监听路径变化，计算覆盖率
+     */
     useEffect(() => {
       if (drawingEnabled) {
         calculateCellCoverage(pagePaths);
       }
     }, [pagePaths, drawingEnabled, calculateCellCoverage]);
 
+    /**
+     * 绘图禁用时清空完成度
+     */
     useEffect(() => {
       if (!drawingEnabled) {
         for (let row = 0; row < rows; row++) {
@@ -310,70 +314,5 @@ const PageDrawingCanvas = forwardRef<PageDrawingCanvasHandle, PageDrawingCanvasP
     );
   }
 );
-
-function calculateSingleCellCoverage(
-  cellX: number,
-  cellY: number,
-  cellSize: number,
-  paths: DrawingPath[]
-): number {
-  const margin = cellSize * 0.12;
-  const effectiveX = cellX + margin;
-  const effectiveY = cellY + margin;
-  const effectiveSize = cellSize - margin * 2;
-
-  const sectors = 9;
-  const sectorSize = effectiveSize / 3;
-  const coveredSectors = new Set<number>();
-
-  let totalPathLength = 0;
-  const cellPaths: DrawingPath[] = [];
-
-  for (const path of paths) {
-    const cellPoints: { x: number; y: number }[] = [];
-    for (let i = 0; i < path.points.length; i++) {
-      const p = path.points[i];
-      if (
-        p.x >= effectiveX &&
-        p.x <= effectiveX + effectiveSize &&
-        p.y >= effectiveY &&
-        p.y <= effectiveY + effectiveSize
-      ) {
-        cellPoints.push(p);
-      }
-    }
-
-    if (cellPoints.length >= 2) {
-      let pathLen = 0;
-      for (let i = 1; i < cellPoints.length; i++) {
-        const dx = cellPoints[i].x - cellPoints[i - 1].x;
-        const dy = cellPoints[i].y - cellPoints[i - 1].y;
-        pathLen += Math.sqrt(dx * dx + dy * dy);
-      }
-      totalPathLength += pathLen;
-      cellPaths.push({ ...path, points: cellPoints });
-
-      for (const p of cellPoints) {
-        const relX = p.x - effectiveX;
-        const relY = p.y - effectiveY;
-        const col = Math.min(2, Math.floor(relX / sectorSize));
-        const row = Math.min(2, Math.floor(relY / sectorSize));
-        const sectorIdx = row * 3 + col;
-        coveredSectors.add(sectorIdx);
-      }
-    }
-  }
-
-  if (coveredSectors.size === 0 && totalPathLength === 0) {
-    return 0;
-  }
-
-  const sectorCoverage = coveredSectors.size / sectors;
-  const minPathLength = cellSize * 1.5;
-  const pathLengthCoverage = Math.min(1, totalPathLength / minPathLength);
-
-  const finalCoverage = sectorCoverage * 0.55 + pathLengthCoverage * 0.45;
-  return Math.min(1, Math.max(0, finalCoverage));
-}
 
 export default PageDrawingCanvas;
